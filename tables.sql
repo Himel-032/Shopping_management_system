@@ -24,7 +24,7 @@ CREATE TABLE Suppliers (
 
 -- 4. Products Table
 CREATE TABLE Products (
-    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     stock INT NOT NULL,

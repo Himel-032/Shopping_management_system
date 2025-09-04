@@ -22,11 +22,19 @@ if (!isset($_SESSION['admin_id'])) {
     <div class="header">
         <h1>Shopping Management System</h1>
         <div class="user-info">
+            <a href="showuser.php" class="logout-btn">All Customers</a>
+        </div>
+        <div class="user-info">
             <span>Welcome, <?php echo htmlspecialchars($_SESSION['admin_email']); ?></span>
             <a href="logout.php" class="logout-btn">Logout</a>
         </div>
     </div>
     <div class="navbar">
+        <div class="nav-item">
+            <a href="products.php">
+                <button type="button">Manage Products</button>
+            </a>
+        </div>
         <div class="nav-item">
             <a href="suppliers_insert.php">
                 <button type="button">Manage Suppliers</button>
