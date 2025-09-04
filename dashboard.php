@@ -1,0 +1,51 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Shopping Management System</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+    <div class="header">
+        <h1>Shopping Management System</h1>
+        <div class="user-info">
+            <span>Welcome, <?php echo htmlspecialchars($_SESSION['admin_email']); ?></span>
+            <a href="logout.php" class="logout-btn">Logout</a>
+        </div>
+    </div>
+    <div class="navbar">
+        <div class="nav-item">
+            <a href="suppliers_insert.php">
+                <button type="button">Manage Suppliers</button>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="categories.php">
+                <button type="button">Manage Categories</button>
+            </a>
+        </div>
+    </div>
+
+     </div>
+    <div class="container">
+        <div class="welcome-card">
+            <h2>Welcome to Admin Dashboard</h2>
+            <p>You are successfully logged in as an administrator.</p>
+        </div>
+    </div>
+</body>
+
+</html>
