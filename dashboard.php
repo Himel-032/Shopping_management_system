@@ -45,6 +45,11 @@ if (!isset($_SESSION['admin_id'])) {
                 <button type="button">Manage Categories</button>
             </a>
         </div>
+        <div class="nav-item">
+            <a href="all_orders.php">
+                <button type="button">All Orders</button>
+            </a>
+        </div>
     </div>
 
      </div>
