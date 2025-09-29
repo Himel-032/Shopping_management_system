@@ -67,10 +67,10 @@ $result = $conn->query("SELECT * FROM Categories ORDER BY category_id");
     <div class="dashboard">
         <button><a href="dashboard.php">Dahsboard</a></button>
     </div>
-    <h2>Suppliers Management</h2>
+    <h2>Categories Management</h2>
 
-    <!-- Add Supplier -->
-    <h3>Add Supplier</h3>
+    <!-- Add Category -->
+    <h3>Add Category</h3>
     <form method="post">
         <input type="number" name="category_id" placeholder="Category ID" required><br><br>
         <input type="text" name="name" placeholder="Name" required><br><br>

@@ -14,6 +14,7 @@ $sql = "
 SELECT 
     o.order_id,
     o.order_date,
+    o.payment_status AS status,
     c.name AS customer_name,
     c.email AS customer_email,
     c.phone AS customer_phone,
@@ -107,6 +108,7 @@ if (!$result_grouped) {
                 <th>Quantity</th>
                 <th>Price</th>
                 <th>Total Order Amount</th>
+                <th>Payment Status</th>
             </tr>
 
             <?php if ($result && mysqli_num_rows($result) > 0): ?>
@@ -123,6 +125,7 @@ if (!$result_grouped) {
                             <td><?php echo $row['quantity']; ?></td>
                             <td><?php echo $row['price']; ?></td>
                             <td><?php echo $row['total_order_amount']; ?></td>
+                            <td><?php echo $row['status']; ?></td>
                             <?php $last_order_id = $row['order_id']; ?>
                         <?php else: ?>
                             <td></td>
@@ -152,7 +155,7 @@ if (!$result_grouped) {
             <tr>
                 <th>Product Name</th>
                 <th>Total Quantity Ordered</th>
-                <th>Total Revenue</th>
+                <th>Total Expected Revenue</th>
             </tr>
 
             <?php if ($result_grouped && mysqli_num_rows($result_grouped) > 0): ?>

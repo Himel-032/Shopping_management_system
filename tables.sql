@@ -43,6 +43,7 @@ CREATE TABLE Orders (
     customer_id INT NOT NULL,
     order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(10,2),
+    payment_status VARCHAR(50) DEFAULT 'Pending',
     FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
         ON DELETE CASCADE ON UPDATE CASCADE
 );

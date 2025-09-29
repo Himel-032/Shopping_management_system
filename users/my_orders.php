@@ -1,6 +1,6 @@
 <?php
 session_start();
-include '../config.php';
+include '../config.php'; // Make sure $conn is defined here
 
 if (!isset($_SESSION['customer_id'])) {
     header("Location: login.php");
@@ -13,7 +13,8 @@ $customer_name = $_SESSION['customer_name'];
 $error = "";
 $success = "";
 
-// Handle payment submission
+// --------------------------
+// Handle Payment
 if (isset($_POST['pay_order'])) {
     $order_id = (int) $_POST['order_id'];
     $payment_method = $_POST['payment_method'];
@@ -27,35 +28,63 @@ if (isset($_POST['pay_order'])) {
     $row_total = mysqli_fetch_assoc($res_total);
     $amount = $row_total['total_amount'];
 
-    // Start transaction
-    mysqli_begin_transaction($conn);
-
-    try {
-        // 1. Update Orders table
-        $sql_update = "UPDATE Orders SET payment_status='Done' WHERE order_id=? AND customer_id=?";
-        $stmt_update = mysqli_prepare($conn, $sql_update);
-        mysqli_stmt_bind_param($stmt_update, "ii", $order_id, $customer_id);
-        if (!mysqli_stmt_execute($stmt_update)) {
-            throw new Exception(mysqli_stmt_error($stmt_update));
-        }
-
-        // 2. Insert into Payments table
+    // Update Orders table
+    $sql_update = "UPDATE Orders SET payment_status='Done' WHERE order_id=? AND customer_id=?";
+    $stmt_update = mysqli_prepare($conn, $sql_update);
+    mysqli_stmt_bind_param($stmt_update, "ii", $order_id, $customer_id);
+    if (mysqli_stmt_execute($stmt_update)) {
+        // Insert into Payments table
         $sql_insert = "INSERT INTO Payments (order_id, payment_method, amount) VALUES (?, ?, ?)";
         $stmt_insert = mysqli_prepare($conn, $sql_insert);
         mysqli_stmt_bind_param($stmt_insert, "isd", $order_id, $payment_method, $amount);
-        if (!mysqli_stmt_execute($stmt_insert)) {
-            throw new Exception(mysqli_stmt_error($stmt_insert));
+        if (mysqli_stmt_execute($stmt_insert)) {
+            $success = "Payment for Order #$order_id completed!";
+        } else {
+            $error = "Payment insert failed: " . mysqli_stmt_error($stmt_insert);
         }
-
-        mysqli_commit($conn);
-        $success = "Payment for Order #$order_id completed!";
-    } catch (Exception $e) {
-        mysqli_rollback($conn);
-        $error = "Payment failed: " . $e->getMessage();
+    } else {
+        $error = "Payment update failed: " . mysqli_stmt_error($stmt_update);
     }
 }
 
-// Fetch orders with total per product
+// --------------------------
+// Handle Delete Unpaid Order
+if (isset($_POST['delete_order'])) {
+    $order_id = (int) $_POST['order_id'];
+
+    // Restore stock for each item
+    $sql_items = "SELECT product_id, quantity FROM Order_Items WHERE order_id=?";
+    $stmt_items = mysqli_prepare($conn, $sql_items);
+    mysqli_stmt_bind_param($stmt_items, "i", $order_id);
+    mysqli_stmt_execute($stmt_items);
+    $res_items = mysqli_stmt_get_result($stmt_items);
+
+    while ($item = mysqli_fetch_assoc($res_items)) {
+        $sql_stock = "UPDATE Products SET stock = stock + ? WHERE product_id=?";
+        $stmt_stock = mysqli_prepare($conn, $sql_stock);
+        mysqli_stmt_bind_param($stmt_stock, "ii", $item['quantity'], $item['product_id']);
+        mysqli_stmt_execute($stmt_stock);
+    }
+
+    // Delete order items
+    $sql_delete_items = "DELETE FROM Order_Items WHERE order_id=?";
+    $stmt_delete_items = mysqli_prepare($conn, $sql_delete_items);
+    mysqli_stmt_bind_param($stmt_delete_items, "i", $order_id);
+    mysqli_stmt_execute($stmt_delete_items);
+
+    // Delete order if unpaid
+    $sql_delete_order = "DELETE FROM Orders WHERE order_id=? AND payment_status != 'Done'";
+    $stmt_delete_order = mysqli_prepare($conn, $sql_delete_order);
+    mysqli_stmt_bind_param($stmt_delete_order, "i", $order_id);
+    if (mysqli_stmt_execute($stmt_delete_order)) {
+        $success = "Order #$order_id deleted and stock restored!";
+    } else {
+        $error = "Failed to delete order: " . mysqli_stmt_error($stmt_delete_order);
+    }
+}
+
+// --------------------------
+// Fetch Orders
 $sql = "
 WITH OrderDetails AS (
     SELECT 
@@ -99,14 +128,84 @@ $last_order_id = 0;
 <head>
     <meta charset="UTF-8">
     <title>My Orders</title>
-    <link rel="stylesheet" href="./css/my_orders.css">
     <style>
-        /* Modal styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 20px;
+            color: #333;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+
+        a {
+            text-decoration: none;
+            color: #3498db;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        th,
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button.pay {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        button.pay:hover {
+            background-color: #27ae60;
+        }
+
+        button.delete {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        button.delete:hover {
+            background-color: #c0392b;
+        }
+
+        /* Modal Styling */
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            padding-top: 100px;
             left: 0;
             top: 0;
             width: 100%;
@@ -116,26 +215,58 @@ $last_order_id = 0;
         }
 
         .modal-content {
-            background-color: #fefefe;
-            margin: auto;
+            background-color: #fff;
+            margin: 10% auto;
             padding: 20px;
-            border: 1px solid #888;
-            width: 400px;
             border-radius: 8px;
+            width: 350px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #2c3e50;
         }
 
         .close {
             color: #aaa;
             float: right;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal select,
+        .modal input[type="text"],
+        .modal input[type="number"] {
+            padding: 6px;
+            width: 100%;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modal button {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        p.error {
+            color: red;
+        }
+
+        p.success {
+            color: green;
         }
     </style>
 </head>
 
 <body>
-
     <h2>Hi <?php echo $customer_name; ?>, Your Orders</h2>
     <p><a href="dashboard.php">Back to Dashboard</a></p>
 
@@ -167,17 +298,19 @@ $last_order_id = 0;
                     <td></td>
                     <td></td>
                 <?php endif; ?>
-
                 <td><?php echo $row['product_id']; ?></td>
                 <td><?php echo $row['product_name']; ?></td>
                 <td><?php echo $row['quantity']; ?></td>
                 <td><?php echo $row['price']; ?></td>
                 <td><?php echo $row['total_price']; ?></td>
                 <td><?php echo $row['payment_status']; ?></td>
-
                 <td>
                     <?php if ($row['order_id'] == $last_order_id && $row['payment_status'] != 'Done'): ?>
-                        <button onclick="openModal(<?php echo $row['order_id']; ?>)">Pay</button>
+                        <button class="pay" onclick="openModal(<?php echo $row['order_id']; ?>)">Pay</button>
+                        <form method="post" style="display:inline-block;">
+                            <input type="hidden" name="order_id" value="<?php echo $row['order_id']; ?>">
+                            <button type="submit" name="delete_order" class="delete">Delete</button>
+                        </form>
                     <?php else: ?>
                         <span>Paid</span>
                     <?php endif; ?>
@@ -220,7 +353,6 @@ $last_order_id = 0;
             }
         }
     </script>
-
 </body>
 
 </html>

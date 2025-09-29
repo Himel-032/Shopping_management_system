@@ -36,7 +36,7 @@ if (!isset($_SESSION['admin_id'])) {
             </a>
         </div>
         <div class="nav-item">
-            <a href="suppliers_insert.php">
+            <a href="suppliers.php">
                 <button type="button">Manage Suppliers</button>
             </a>
         </div>
@@ -50,6 +50,10 @@ if (!isset($_SESSION['admin_id'])) {
                 <button type="button">All Orders</button>
             </a>
         </div>
+        <div class="nav-item">
+            <a href="all_reviews.php">
+                <button type="button">Customer Reviews</button>
+            </a>
     </div>
 
      </div>
