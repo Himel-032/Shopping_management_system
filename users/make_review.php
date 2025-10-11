@@ -31,17 +31,31 @@ if (isset($_POST['submit_review'])) {
 
 // ------------------------
 // Top table: all purchased products (payment done)
+// $sql_purchased = "
+// (
+//     SELECT p.product_id, p.name AS product_name, p.price, p.stock,
+//            o.order_id, o.order_date
+//     FROM Orders o
+//     INNER JOIN Order_Items oi ON o.order_id = oi.order_id
+//     INNER JOIN Products p ON oi.product_id = p.product_id
+//     WHERE o.customer_id = ? AND o.payment_status = 'Done'
+// )
+// ORDER BY order_date DESC, product_name
+// ";
+
 $sql_purchased = "
-(
-    SELECT p.product_id, p.name AS product_name, p.price, p.stock,
-           o.order_id, o.order_date
-    FROM Orders o
-    INNER JOIN Order_Items oi ON o.order_id = oi.order_id
-    INNER JOIN Products p ON oi.product_id = p.product_id
-    WHERE o.customer_id = ? AND o.payment_status = 'Done'
-)
-ORDER BY order_date DESC, product_name
+SELECT p.product_id, p.name AS product_name, p.price, p.stock,
+       o.order_id, o.order_date
+FROM Orders o
+CROSS JOIN Order_Items oi
+CROSS JOIN Products p
+WHERE o.order_id = oi.order_id
+  AND oi.product_id = p.product_id
+  AND o.customer_id = ?
+  AND o.payment_status = 'Done'
+ORDER BY o.order_date DESC, p.name
 ";
+
 $stmt_purchased = mysqli_prepare($conn, $sql_purchased);
 mysqli_stmt_bind_param($stmt_purchased, "i", $customer_id);
 mysqli_stmt_execute($stmt_purchased);

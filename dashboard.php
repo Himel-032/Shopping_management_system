@@ -54,7 +54,17 @@ if (!isset($_SESSION['admin_id'])) {
             <a href="all_reviews.php">
                 <button type="button">Customer Reviews</button>
             </a>
-    </div>
+        </div>
+        <div class="nav-item">
+            <a href="top_customer.php">
+                <button type="button">Top customer</button>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="top_order.php">
+                <button type="button">Top orders</button>
+            </a>
+        </div>
 
      </div>
     <div class="container">

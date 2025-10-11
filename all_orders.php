@@ -50,16 +50,39 @@ $last_order_id = 0;
 // GROUP BY p.product_id, p.name
 // ORDER BY total_quantity_ordered DESC
 // ";
+// $sql_grouped = "
+// SELECT 
+//     p.name AS product_name,
+//     SUM(oi.quantity) AS total_quantity_ordered,
+//     SUM(oi.quantity * oi.price) AS total_revenue
+// FROM Order_Items oi
+// INNER JOIN Products p ON oi.product_id = p.product_id
+// GROUP BY p.product_id, p.name
+// ORDER BY total_quantity_ordered DESC
+// ";
+
 $sql_grouped = "
 SELECT 
     p.name AS product_name,
     SUM(oi.quantity) AS total_quantity_ordered,
     SUM(oi.quantity * oi.price) AS total_revenue
 FROM Order_Items oi
-INNER JOIN Products p ON oi.product_id = p.product_id
+LEFT JOIN Products p ON oi.product_id = p.product_id
 GROUP BY p.product_id, p.name
+
+UNION
+
+SELECT 
+    p.name AS product_name,
+    SUM(oi.quantity) AS total_quantity_ordered,
+    SUM(oi.quantity * oi.price) AS total_revenue
+FROM Order_Items oi
+RIGHT JOIN Products p ON oi.product_id = p.product_id
+GROUP BY p.product_id, p.name
+
 ORDER BY total_quantity_ordered DESC
 ";
+
 
 
 $result_grouped = mysqli_query($conn, $sql_grouped);
