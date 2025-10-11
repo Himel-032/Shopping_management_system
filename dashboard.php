@@ -65,6 +65,16 @@ if (!isset($_SESSION['admin_id'])) {
                 <button type="button">Top orders</button>
             </a>
         </div>
+        <div class="nav-item">
+            <a href="customer_loyalty.php">
+                <button type="button">Customer Loyalty</button>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="admin_aggregates.php">
+                <button type="button">Aggregates & Statistics</button>
+            </a>
+        </div>
 
      </div>
     <div class="container">
