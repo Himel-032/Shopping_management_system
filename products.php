@@ -40,10 +40,18 @@ if (isset($_POST['update_product'])) {
     $stock = (int) $_POST['stock'];
     $category_id = (int) $_POST['category_id'];
     $supplier_id = (int) $_POST['supplier_id'];
+    $query_view = "CREATE OR REPLACE VIEW view_products AS
+SELECT product_id, name, price, stock, category_id, supplier_id
+FROM Products";
+    $conn->query($query_view);
 
-    $sql = "UPDATE Products 
-            SET name='$name', price=$price, stock=$stock, category_id=$category_id, supplier_id=$supplier_id
-            WHERE product_id=$id";
+    // $sql = "UPDATE Products 
+    //         SET name='$name', price=$price, stock=$stock, category_id=$category_id, supplier_id=$supplier_id
+    //         WHERE product_id=$id";
+    $sql = "UPDATE view_products
+        SET name='$name', price=$price, stock=$stock, category_id=$category_id, supplier_id=$supplier_id
+        WHERE product_id=$id";
+
     $conn->query($sql);
 }
 

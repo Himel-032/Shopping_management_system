@@ -36,7 +36,19 @@ CREATE TABLE Products (
     FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
-
+-- Product Table
+CREATE TABLE Product (
+    product_id INT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
+    stock INT NOT NULL,
+    category_id INT NOT NULL,
+    supplier_id INT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
 -- 5. Orders Table
 CREATE TABLE Orders (
     order_id INT  PRIMARY KEY AUTO_INCREMENT,
