@@ -101,6 +101,105 @@ if (!$result_grouped) {
     
         
     <link rel="stylesheet" href="css/all_orders.css">
+    <style>
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .content-area {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .sql-panel {
+            width: 400px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .sql-panel h3 {
+            color: #4ec9b0;
+            margin-top: 0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+        }
+        
+        .sql-query {
+            background-color: #2d2d2d;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #569cd6;
+        }
+        
+        .sql-query h4 {
+            color: #ce9178;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+        }
+        
+        .sql-query pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .sql-keyword {
+            color: #569cd6;
+            font-weight: bold;
+        }
+        
+        .sql-string {
+            color: #ce9178;
+        }
+        
+        .sql-number {
+            color: #b5cea8;
+        }
+        
+        .sql-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+        
+        .status-success {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        .status-error {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .sql-panel {
+                width: 100%;
+                position: relative;
+                max-height: 400px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -112,90 +211,127 @@ if (!$result_grouped) {
         </div>
     </div>
 
-    <div class="container">
-        <?php if ($error != ""): ?>
-            <p style="color:red;"><?php echo $error; ?></p>
-        <?php endif; ?>
+    <div class="main-layout">
+        <div class="content-area">
+            <div class="container">
+                <?php if ($error != ""): ?>
+                    <p style="color:red;"><?php echo $error; ?></p>
+                <?php endif; ?>
 
-        <!-- Detailed Orders Table -->
-        <h2>All Orders</h2>
-        <table>
-            <tr>
-                <th>Order ID</th>
-                <th>Order Date</th>
-                <th>Customer Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Address</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total Order Amount</th>
-                <th>Payment Status</th>
-            </tr>
-
-            <?php if ($result && mysqli_num_rows($result) > 0): ?>
-                <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                <!-- Detailed Orders Table -->
+                <h2>All Orders</h2>
+                <table>
                     <tr>
-                        <?php if ($row['order_id'] != $last_order_id): ?>
-                            <td><?php echo $row['order_id']; ?></td>
-                            <td><?php echo $row['order_date']; ?></td>
-                            <td><?php echo $row['customer_name']; ?></td>
-                            <td><?php echo $row['customer_email']; ?></td>
-                            <td><?php echo $row['customer_phone']; ?></td>
-                            <td><?php echo $row['customer_address']; ?></td>
-                            <td><?php echo $row['product_name']; ?></td>
-                            <td><?php echo $row['quantity']; ?></td>
-                            <td><?php echo $row['price']; ?></td>
-                            <td><?php echo $row['total_order_amount']; ?></td>
-                            <td><?php echo $row['status']; ?></td>
-                            <?php $last_order_id = $row['order_id']; ?>
-                        <?php else: ?>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td><?php echo $row['product_name']; ?></td>
-                            <td><?php echo $row['quantity']; ?></td>
-                            <td><?php echo $row['price']; ?></td>
-                            <td><?php echo $row['total_price']; ?></td>
-                            <td></td>
-                        <?php endif; ?>
+                        <th>Order ID</th>
+                        <th>Order Date</th>
+                        <th>Customer Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Address</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total Order Amount</th>
+                        <th>Payment Status</th>
                     </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="11">No orders found.</td>
-                </tr>
-            <?php endif; ?>
-        </table>
 
-        <!-- Summary Table: Orders Grouped by Product -->
-        <h2>Orders Summary by Product</h2>
-        <table>
-            <tr>
-                <th>Product Name</th>
-                <th>Total Quantity Ordered</th>
-                <th>Total Expected Revenue</th>
-            </tr>
+                    <?php if ($result && mysqli_num_rows($result) > 0): ?>
+                        <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                            <tr>
+                                <?php if ($row['order_id'] != $last_order_id): ?>
+                                    <td><?php echo $row['order_id']; ?></td>
+                                    <td><?php echo $row['order_date']; ?></td>
+                                    <td><?php echo $row['customer_name']; ?></td>
+                                    <td><?php echo $row['customer_email']; ?></td>
+                                    <td><?php echo $row['customer_phone']; ?></td>
+                                    <td><?php echo $row['customer_address']; ?></td>
+                                    <td><?php echo $row['product_name']; ?></td>
+                                    <td><?php echo $row['quantity']; ?></td>
+                                    <td><?php echo $row['price']; ?></td>
+                                    <td><?php echo $row['total_order_amount']; ?></td>
+                                    <td><?php echo $row['status']; ?></td>
+                                    <?php $last_order_id = $row['order_id']; ?>
+                                <?php else: ?>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td><?php echo $row['product_name']; ?></td>
+                                    <td><?php echo $row['quantity']; ?></td>
+                                    <td><?php echo $row['price']; ?></td>
+                                    <td><?php echo $row['total_price']; ?></td>
+                                    <td></td>
+                                <?php endif; ?>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="11">No orders found.</td>
+                        </tr>
+                    <?php endif; ?>
+                </table>
 
-            <?php if ($result_grouped && mysqli_num_rows($result_grouped) > 0): ?>
-                <?php while ($row = mysqli_fetch_assoc($result_grouped)): ?>
+                <!-- Summary Table: Orders Grouped by Product -->
+                <h2>Orders Summary by Product</h2>
+                <table>
                     <tr>
-                        <td><?php echo $row['product_name']; ?></td>
-                        <td><?php echo $row['total_quantity_ordered']; ?></td>
-                        <td><?php echo $row['total_revenue']; ?></td>
+                        <th>Product Name</th>
+                        <th>Total Quantity Ordered</th>
+                        <th>Total Expected Revenue</th>
                     </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="3">No orders found.</td>
-                </tr>
-            <?php endif; ?>
-        </table>
 
+                    <?php if ($result_grouped && mysqli_num_rows($result_grouped) > 0): ?>
+                        <?php while ($row = mysqli_fetch_assoc($result_grouped)): ?>
+                            <tr>
+                                <td><?php echo $row['product_name']; ?></td>
+                                <td><?php echo $row['total_quantity_ordered']; ?></td>
+                                <td><?php echo $row['total_revenue']; ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="3">No orders found.</td>
+                        </tr>
+                    <?php endif; ?>
+                </table>
+            </div>
+        </div>
+
+        <!-- SQL Query Display Panel -->
+        <div class="sql-panel">
+            <h3>📊 Executed SQL Queries</h3>
+            
+            <div class="sql-query">
+                <h4>Query 1: Detailed Orders 
+                    <span class="sql-status <?php echo $result ? 'status-success' : 'status-error'; ?>">
+                        <?php echo $result ? '✓ Success' : '✗ Error'; ?>
+                    </span>
+                </h4>
+                <pre><?php echo htmlspecialchars($sql); ?></pre>
+            </div>
+
+            <div class="sql-query">
+                <h4>Query 2: Orders Grouped by Product
+                    <span class="sql-status <?php echo $result_grouped ? 'status-success' : 'status-error'; ?>">
+                        <?php echo $result_grouped ? '✓ Success' : '✗ Error'; ?>
+                    </span>
+                </h4>
+                <pre><?php echo htmlspecialchars($sql_grouped); ?></pre>
+            </div>
+
+            <div style="margin-top: 20px; padding: 10px; background-color: #2d2d2d; border-radius: 5px; font-size: 11px;">
+                <strong style="color: #4ec9b0;">Query Statistics:</strong><br>
+                <span style="color: #d4d4d4;">
+                    • Total Queries Executed: 2<br>
+                    • Successful: <?php echo ($result ? 1 : 0) + ($result_grouped ? 1 : 0); ?><br>
+                    • Failed: <?php echo ($result ? 0 : 1) + ($result_grouped ? 0 : 1); ?><br>
+                    • Orders Retrieved: <?php echo $result ? mysqli_num_rows($result) : 0; ?><br>
+                    • Product Summary Rows: <?php echo $result_grouped ? mysqli_num_rows($result_grouped) : 0; ?>
+                </span>
+            </div>
+        </div>
     </div>
 </body>
 

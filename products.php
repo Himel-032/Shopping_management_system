@@ -8,6 +8,9 @@ if (!isset($_SESSION['admin_id'])) {
     exit();
 }
 
+// Array to track executed queries
+$executed_queries = [];
+
 // --- INSERT ---
 if (isset($_POST['add_product'])) {
     $id = (int) trim($_POST['product_id']);
@@ -18,13 +21,19 @@ if (isset($_POST['add_product'])) {
     $supplier_id = (int) $_POST['supplier_id'];
 
     // Check if product_id exists
-    $check = $conn->query("SELECT * FROM Products WHERE product_id=$id");
+    $check_sql = "SELECT * FROM Products WHERE product_id=$id";
+    $check = $conn->query($check_sql);
+    $executed_queries[] = ['query' => $check_sql, 'type' => 'SELECT', 'status' => $check ? 'success' : 'error'];
+    
     if ($check->num_rows > 0) {
         echo "<p style='color:red;'>Product ID $id already exists!</p>";
     } else {
         $sql = "INSERT INTO Products (product_id, name, price, stock, category_id, supplier_id)
                 VALUES ($id, '$name', $price, $stock, $category_id, $supplier_id)";
-        if ($conn->query($sql)) {
+        $result = $conn->query($sql);
+        $executed_queries[] = ['query' => $sql, 'type' => 'INSERT', 'status' => $result ? 'success' : 'error'];
+        
+        if ($result) {
             echo "<p style='color:green;'>Product added successfully!</p>";
         } else {
             echo "<p style='color:red;'>Insert Error: " . $conn->error . "</p>";
@@ -40,35 +49,38 @@ if (isset($_POST['update_product'])) {
     $stock = (int) $_POST['stock'];
     $category_id = (int) $_POST['category_id'];
     $supplier_id = (int) $_POST['supplier_id'];
+    
     $query_view = "CREATE OR REPLACE VIEW view_products AS
 SELECT product_id, name, price, stock, category_id, supplier_id
 FROM Products";
-    $conn->query($query_view);
+    $view_result = $conn->query($query_view);
+    $executed_queries[] = ['query' => $query_view, 'type' => 'CREATE VIEW', 'status' => $view_result ? 'success' : 'error'];
 
-    // $sql = "UPDATE Products 
-    //         SET name='$name', price=$price, stock=$stock, category_id=$category_id, supplier_id=$supplier_id
-    //         WHERE product_id=$id";
     $sql = "UPDATE view_products
         SET name='$name', price=$price, stock=$stock, category_id=$category_id, supplier_id=$supplier_id
         WHERE product_id=$id";
-
-    $conn->query($sql);
+    $update_result = $conn->query($sql);
+    $executed_queries[] = ['query' => $sql, 'type' => 'UPDATE', 'status' => $update_result ? 'success' : 'error'];
 }
 
 // --- DELETE ---
 if (isset($_POST['delete_product'])) {
     $id = (int) $_POST['product_id'];
-    $conn->query("DELETE FROM Products WHERE product_id=$id");
+    $sql = "DELETE FROM Products WHERE product_id=$id";
+    $result = $conn->query($sql);
+    $executed_queries[] = ['query' => $sql, 'type' => 'DELETE', 'status' => $result ? 'success' : 'error'];
 }
 
 // Fetch products
-$result = $conn->query("
+$fetch_sql = "
     SELECT p.*, c.name AS category_name, s.name AS supplier_name 
     FROM Products p
     JOIN Categories c ON p.category_id=c.category_id
     JOIN Suppliers s ON p.supplier_id=s.supplier_id
     ORDER BY product_id
-");
+";
+$result = $conn->query($fetch_sql);
+$executed_queries[] = ['query' => $fetch_sql, 'type' => 'SELECT', 'status' => $result ? 'success' : 'error'];
 
 // Fetch categories and suppliers for dropdowns
 $categories = $conn->query("SELECT * FROM Categories ORDER BY name");
@@ -81,6 +93,212 @@ $suppliers = $conn->query("SELECT * FROM Suppliers ORDER BY name");
 <head>
     <title>Products Management</title>
     <link rel="stylesheet" href="css/products.css">
+    <style>
+        .top-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-area {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sql-sidebar {
+            width: 400px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .sql-sidebar h3 {
+            color: #4ec9b0;
+            margin-top: 0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .sql-query-item {
+            background-color: #2d2d2d;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 12px;
+            border-left: 4px solid #569cd6;
+        }
+
+        .sql-query-item.success {
+            border-left-color: #4caf50;
+        }
+
+        .sql-query-item.error {
+            border-left-color: #f44336;
+        }
+
+        .sql-query-item.insert {
+            border-left-color: #2196f3;
+        }
+
+        .sql-query-item.update {
+            border-left-color: #ff9800;
+        }
+
+        .sql-query-item.delete {
+            border-left-color: #f44336;
+        }
+
+        .sql-query-item h4 {
+            color: #ce9178;
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sql-query-item pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #d4d4d4;
+        }
+
+        .query-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .badge-select {
+            background-color: #2196f3;
+            color: white;
+        }
+
+        .badge-insert {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .badge-update {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .badge-delete {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .badge-create {
+            background-color: #9c27b0;
+            color: white;
+        }
+
+        .status-icon {
+            font-size: 14px;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background-color: white;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: bold;
+        }
+
+        table td input[type="number"],
+        table td input[type="text"],
+        table td select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Actions column - prevent button overlapping */
+        table td:last-child {
+            min-width: 180px;
+            white-space: nowrap;
+        }
+
+        table td input[type="submit"] {
+            padding: 6px 12px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        table td input[type="submit"][name="update_product"] {
+            background-color: #3498db;
+            color: white;
+        }
+
+        table td input[type="submit"][name="update_product"]:hover {
+            background-color: #2980b9;
+        }
+
+        table td input[type="submit"][name="delete_product"] {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        table td input[type="submit"][name="delete_product"]:hover {
+            background-color: #c0392b;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        table tr:hover {
+            background-color: #e8f4fd;
+        }
+
+        @media (max-width: 1200px) {
+            .top-section {
+                flex-direction: column;
+            }
+
+            .sql-sidebar {
+                width: 100%;
+                position: relative;
+                max-height: 400px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -89,27 +307,54 @@ $suppliers = $conn->query("SELECT * FROM Suppliers ORDER BY name");
 
     <h2>Products Management</h2>
 
-    <!-- Add Product -->
-    <h3>Add Product</h3>
-    <form method="post">
-        <input type="number" name="product_id" placeholder="Product ID" required><br><br>
-        <input type="text" name="name" placeholder="Product Name" required><br><br>
-        <input type="number" step="0.01" name="price" placeholder="Price" required><br><br>
-        <input type="number" name="stock" placeholder="Stock" required><br><br>
-        <select name="category_id" required>
-            <option value="">Select Category</option>
-            <?php while ($cat = $categories->fetch_assoc()): ?>
-                    <option value="<?php echo $cat['category_id']; ?>"><?php echo $cat['name']; ?></option>
-            <?php endwhile; ?>
-        </select><br><br>
-        <select name="supplier_id" required>
-            <option value="">Select Supplier</option>
-            <?php while ($sup = $suppliers->fetch_assoc()): ?>
-                    <option value="<?php echo $sup['supplier_id']; ?>"><?php echo $sup['name']; ?></option>
-            <?php endwhile; ?>
-        </select><br><br>
-        <input type="submit" name="add_product" value="Add Product">
-    </form>
+    <div class="top-section">
+        <!-- Form Area (Left) -->
+        <div class="form-area">
+            <!-- Add Product -->
+            <h3>Add Product</h3>
+            <form method="post">
+                <input type="number" name="product_id" placeholder="Product ID" required><br><br>
+                <input type="text" name="name" placeholder="Product Name" required><br><br>
+                <input type="number" step="0.01" name="price" placeholder="Price" required><br><br>
+                <input type="number" name="stock" placeholder="Stock" required><br><br>
+                <select name="category_id" required>
+                    <option value="">Select Category</option>
+                    <?php while ($cat = $categories->fetch_assoc()): ?>
+                            <option value="<?php echo $cat['category_id']; ?>"><?php echo $cat['name']; ?></option>
+                    <?php endwhile; ?>
+                </select><br><br>
+                <select name="supplier_id" required>
+                    <option value="">Select Supplier</option>
+                    <?php while ($sup = $suppliers->fetch_assoc()): ?>
+                            <option value="<?php echo $sup['supplier_id']; ?>"><?php echo $sup['name']; ?></option>
+                    <?php endwhile; ?>
+                </select><br><br>
+                <input type="submit" name="add_product" value="Add Product">
+            </form>
+        </div>
+
+        <!-- SQL Sidebar (Right) -->
+        <div class="sql-sidebar">
+            <h3>📊 Executed SQL Queries</h3>
+
+            <?php foreach ($executed_queries as $index => $query_data): ?>
+                <div class="sql-query-item <?php echo strtolower(str_replace(' ', '-', $query_data['type'])) . ' ' . $query_data['status']; ?>">
+                    <h4>
+                        <span>
+                            Query #<?php echo $index + 1; ?>
+                            <span class="query-badge badge-<?php echo strtolower(str_replace(' ', '-', $query_data['type'])); ?>">
+                                <?php echo $query_data['type']; ?>
+                            </span>
+                        </span>
+                        <span class="status-icon">
+                            <?php echo $query_data['status'] === 'success' ? '✓' : '✗'; ?>
+                        </span>
+                    </h4>
+                    <pre><?php echo htmlspecialchars($query_data['query']); ?></pre>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
 
     <hr>
 

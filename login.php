@@ -177,10 +177,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <button type="submit" class="login-btn">Login</button>
         </form>
-
-        <div class="forgot-password">
-            <a href="forgot-password.php">Forgot your password?</a>
-        </div>
     </div>
 </body>
 
