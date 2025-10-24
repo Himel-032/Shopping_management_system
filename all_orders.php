@@ -60,7 +60,8 @@ $last_order_id = 0;
 // GROUP BY p.product_id, p.name
 // ORDER BY total_quantity_ordered DESC
 // ";
-
+ 
+// exclude products with zero orders
 $sql_grouped = "
 SELECT 
     p.name AS product_name,
@@ -69,6 +70,7 @@ SELECT
 FROM Order_Items oi
 LEFT JOIN Products p ON oi.product_id = p.product_id
 GROUP BY p.product_id, p.name
+HAVING total_quantity_ordered > 0
 
 UNION
 
@@ -79,7 +81,7 @@ SELECT
 FROM Order_Items oi
 RIGHT JOIN Products p ON oi.product_id = p.product_id
 GROUP BY p.product_id, p.name
-
+HAVING total_quantity_ordered > 0
 ORDER BY total_quantity_ordered DESC
 ";
 
@@ -88,6 +90,19 @@ ORDER BY total_quantity_ordered DESC
 $result_grouped = mysqli_query($conn, $sql_grouped);
 if (!$result_grouped) {
     $error .= "<br>Grouped query error: " . mysqli_error($conn);
+}
+
+// ------------------ Natural Join: Orders with Customer Names ------------------
+$sql_natural = "
+SELECT o.order_id, o.order_date, c.name AS customer_name
+FROM Orders o
+NATURAL JOIN Customers c
+ORDER BY o.order_date DESC
+";
+
+$result_natural = mysqli_query($conn, $sql_natural);
+if (!$result_natural) {
+    $error .= "<br>Natural join query error: " . mysqli_error($conn);
 }
 ?>
 
@@ -296,6 +311,30 @@ if (!$result_grouped) {
                         </tr>
                     <?php endif; ?>
                 </table>
+
+                <!-- Natural Join Table: Orders with Customer Names -->
+                <h2>Orders with Customer Names (NATURAL JOIN)</h2>
+                <table>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Order Date</th>
+                        <th>Customer Name</th>
+                    </tr>
+
+                    <?php if ($result_natural && mysqli_num_rows($result_natural) > 0): ?>
+                        <?php while ($row = mysqli_fetch_assoc($result_natural)): ?>
+                            <tr>
+                                <td><?php echo $row['order_id']; ?></td>
+                                <td><?php echo $row['order_date']; ?></td>
+                                <td><?php echo $row['customer_name']; ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="3">No orders found.</td>
+                        </tr>
+                    <?php endif; ?>
+                </table>
             </div>
         </div>
 
@@ -321,14 +360,24 @@ if (!$result_grouped) {
                 <pre><?php echo htmlspecialchars($sql_grouped); ?></pre>
             </div>
 
+            <div class="sql-query">
+                <h4>Query 3: Orders with Customer Names (NATURAL JOIN)
+                    <span class="sql-status <?php echo $result_natural ? 'status-success' : 'status-error'; ?>">
+                        <?php echo $result_natural ? '✓ Success' : '✗ Error'; ?>
+                    </span>
+                </h4>
+                <pre><?php echo htmlspecialchars($sql_natural); ?></pre>
+            </div>
+
             <div style="margin-top: 20px; padding: 10px; background-color: #2d2d2d; border-radius: 5px; font-size: 11px;">
                 <strong style="color: #4ec9b0;">Query Statistics:</strong><br>
                 <span style="color: #d4d4d4;">
-                    • Total Queries Executed: 2<br>
-                    • Successful: <?php echo ($result ? 1 : 0) + ($result_grouped ? 1 : 0); ?><br>
-                    • Failed: <?php echo ($result ? 0 : 1) + ($result_grouped ? 0 : 1); ?><br>
+                    • Total Queries Executed: 3<br>
+                    • Successful: <?php echo ($result ? 1 : 0) + ($result_grouped ? 1 : 0) + ($result_natural ? 1 : 0); ?><br>
+                    • Failed: <?php echo ($result ? 0 : 1) + ($result_grouped ? 0 : 1) + ($result_natural ? 0 : 1); ?><br>
                     • Orders Retrieved: <?php echo $result ? mysqli_num_rows($result) : 0; ?><br>
-                    • Product Summary Rows: <?php echo $result_grouped ? mysqli_num_rows($result_grouped) : 0; ?>
+                    • Product Summary Rows: <?php echo $result_grouped ? mysqli_num_rows($result_grouped) : 0; ?><br>
+                    • Natural Join Rows: <?php echo $result_natural ? mysqli_num_rows($result_natural) : 0; ?>
                 </span>
             </div>
         </div>

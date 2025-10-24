@@ -41,7 +41,7 @@ if (!$result_max_order) {
 
 // 3. Average order total
 $sql_avg_order = "
-SELECT AVG(total_amount) AS avg_order_amount
+SELECT AVG(NVL(total_amount, 0)) AS avg_order_amount
 FROM Orders
 WHERE payment_status = 'Done'
 ";

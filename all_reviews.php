@@ -15,7 +15,7 @@ $executed_queries = [];
 
 // Fetch all reviews with product and customer info
 $sql = "
-SELECT 
+SELECT DISTINCT
     r.review_id,
     r.rating,
     r.comment,

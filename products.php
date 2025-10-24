@@ -71,14 +71,29 @@ if (isset($_POST['delete_product'])) {
     $executed_queries[] = ['query' => $sql, 'type' => 'DELETE', 'status' => $result ? 'success' : 'error'];
 }
 
-// Fetch products
+// --- SEARCH/FILTER ---
+$search_mode = isset($_GET['search_mode']) ? $_GET['search_mode'] : 'all';
+$selected_categories = isset($_GET['categories']) ? $_GET['categories'] : [];
+
+// Build fetch query with category filtering
 $fetch_sql = "
     SELECT p.*, c.name AS category_name, s.name AS supplier_name 
     FROM Products p
     JOIN Categories c ON p.category_id=c.category_id
     JOIN Suppliers s ON p.supplier_id=s.supplier_id
-    ORDER BY product_id
 ";
+
+// Apply category filters using IN or NOT IN
+if ($search_mode === 'include' && !empty($selected_categories)) {
+    $category_ids = implode(',', array_map('intval', $selected_categories));
+    $fetch_sql .= " WHERE p.category_id IN ($category_ids)";
+} elseif ($search_mode === 'exclude' && !empty($selected_categories)) {
+    $category_ids = implode(',', array_map('intval', $selected_categories));
+    $fetch_sql .= " WHERE p.category_id NOT IN ($category_ids)";
+}
+
+$fetch_sql .= " ORDER BY product_id";
+
 $result = $conn->query($fetch_sql);
 $executed_queries[] = ['query' => $fetch_sql, 'type' => 'SELECT', 'status' => $result ? 'success' : 'error'];
 
@@ -287,6 +302,112 @@ $suppliers = $conn->query("SELECT * FROM Suppliers ORDER BY name");
             background-color: #e8f4fd;
         }
 
+        /* Search Filter Section */
+        .search-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .search-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .filter-form {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .filter-group select[multiple] {
+            width: 100%;
+            min-height: 100px;
+            padding: 5px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+
+        .filter-group select[multiple]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .filter-group select[multiple] option {
+            padding: 5px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-filter {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-search {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-search:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-reset {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background-color: #7f8c8d;
+        }
+
+        .filter-hint {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
         @media (max-width: 1200px) {
             .top-section {
                 flex-direction: column;
@@ -302,7 +423,7 @@ $suppliers = $conn->query("SELECT * FROM Suppliers ORDER BY name");
 </head>
 <body>
     <div class="dashboard">
-        <a href="dashboard.php"><button>Dashboard</button></a>
+        <a href="delete_view.php"><button>Dashboard</button></a>
     </div>
 
     <h2>Products Management</h2>
@@ -357,6 +478,52 @@ $suppliers = $conn->query("SELECT * FROM Suppliers ORDER BY name");
     </div>
 
     <hr>
+
+    <!-- Category Search/Filter Section -->
+    <div class="search-section">
+        <h3>🔍 Filter Products by Category</h3>
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label>Select Categories:</label>
+                <select name="categories[]" multiple size="5">
+                    <?php
+                    // Fetch categories for filter
+                    $categories_filter = $conn->query("SELECT * FROM Categories ORDER BY name");
+                    while ($cat = $categories_filter->fetch_assoc()):
+                        $selected = in_array($cat['category_id'], $selected_categories) ? 'selected' : '';
+                    ?>
+                        <option value="<?php echo $cat['category_id']; ?>" <?php echo $selected; ?>>
+                            <?php echo htmlspecialchars($cat['name']); ?>
+                        </option>
+                    <?php endwhile; ?>
+                </select>
+                <div class="filter-hint">Hold Ctrl/Cmd to select multiple categories</div>
+            </div>
+
+            <div class="filter-group">
+                <label>Filter Mode:</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="search_mode" value="all" <?php echo $search_mode === 'all' ? 'checked' : ''; ?>>
+                        Show All
+                    </label>
+                    <label>
+                        <input type="radio" name="search_mode" value="include" <?php echo $search_mode === 'include' ? 'checked' : ''; ?>>
+                        Include (IN)
+                    </label>
+                    <label>
+                        <input type="radio" name="search_mode" value="exclude" <?php echo $search_mode === 'exclude' ? 'checked' : ''; ?>>
+                        Exclude (NOT IN)
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-buttons">
+                <button type="submit" class="btn-filter btn-search">🔍 Apply Filter</button>
+                <button type="button" class="btn-filter btn-reset" onclick="window.location.href='products.php'">↻ Reset</button>
+            </div>
+        </form>
+    </div>
 
     <!-- Product List -->
     <h3>All Products</h3>

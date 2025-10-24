@@ -5,6 +5,10 @@ if (!isset($_SESSION['admin_id'])) {
     header("Location: login.php");
     exit();
 }
+if (isset($_SESSION['message'])) {
+    echo "<p style='color:green;'>" . $_SESSION['message'] . "</p>";
+    unset($_SESSION['message']);
+}
 
 ?>
 
@@ -295,12 +299,34 @@ if (!isset($_SESSION['admin_id'])) {
                 </a>
             </div>
             <div class="nav-item">
+                <a href="product_insights.php">
+                    <button type="button">
+                        <span class="icon">📊</span>
+                        <div>
+                            <div>Product Insights</div>
+                            <div class="nav-description">View detailed product performance metrics</div>
+                        </div>
+                    </button>
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="suppliers.php">
                     <button type="button">
                         <span class="icon">🏭</span>
                         <div>
                             <div>Manage Suppliers</div>
                             <div class="nav-description">Track and manage supplier information</div>
+                        </div>
+                    </button>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="customer_supplier_insights.php">
+                    <button type="button">
+                        <span class="icon">🏭</span>
+                        <div>
+                            <div>Customer-Supplier Insights</div>
+                            <div class="nav-description">Analyze customers who are also suppliers</div>
                         </div>
                     </button>
                 </a>
