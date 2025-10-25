@@ -7,43 +7,50 @@ if (!isset($_SESSION['customer_id'])) {
     exit();
 }
 
-$customer_id = $_SESSION['customer_id'];
+$customer_id = (int) $_SESSION['customer_id'];
 $customer_name = $_SESSION['customer_name'];
 $error = "";
 $success = "";
 
+// ------------------------
 // Handle review submission
 if (isset($_POST['submit_review'])) {
     $product_id = (int) $_POST['product_id'];
     $rating = (int) $_POST['rating'];
-    $comment = trim($_POST['comment']);
+    $comment = mysqli_real_escape_string($conn, trim($_POST['comment']));
 
-    $sql = "INSERT INTO Reviews (customer_id, product_id, rating, comment) VALUES (?, ?, ?, ?)";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "iiis", $customer_id, $product_id, $rating, $comment);
+    $sql = "INSERT INTO Reviews (customer_id, product_id, rating, comment) 
+            VALUES ($customer_id, $product_id, $rating, '$comment')";
 
-    if (mysqli_stmt_execute($stmt)) {
+    if (mysqli_query($conn, $sql)) {
         $success = "Your review has been submitted!";
     } else {
-        $error = "Failed to submit review: " . mysqli_stmt_error($stmt);
+        $error = "Failed to submit review: " . mysqli_error($conn);
     }
 }
 
 // ------------------------
-// Top table: all purchased products (payment done)
+// all purchased products (payment done)
+
+
 // $sql_purchased = "
-// (
-//     SELECT p.product_id, p.name AS product_name, p.price, p.stock,
-//            o.order_id, o.order_date
-//     FROM Orders o
-//     INNER JOIN Order_Items oi ON o.order_id = oi.order_id
-//     INNER JOIN Products p ON oi.product_id = p.product_id
-//     WHERE o.customer_id = ? AND o.payment_status = 'Done'
-// )
-// ORDER BY order_date DESC, product_name
+// SELECT p.product_id, p.name AS product_name, p.price, p.stock,
+//        o.order_id, o.order_date
+// FROM Orders o
+// JOIN Order_Items oi ON o.order_id = oi.order_id
+// JOIN Products p ON oi.product_id = p.product_id
+// WHERE o.customer_id = $customer_id
+//   AND o.payment_status = 'Done'
+// ORDER BY o.order_date DESC, p.name
 // ";
 
-$sql_purchased = "
+// $result_purchased = mysqli_query($conn, $sql_purchased);
+// if (!$result_purchased) {
+//     die("Query failed: " . mysqli_error($conn));
+// }
+
+
+$sql_purchased_alt = "
 SELECT p.product_id, p.name AS product_name, p.price, p.stock,
        o.order_id, o.order_date
 FROM Orders o
@@ -51,30 +58,32 @@ CROSS JOIN Order_Items oi
 CROSS JOIN Products p
 WHERE o.order_id = oi.order_id
   AND oi.product_id = p.product_id
-  AND o.customer_id = ?
+  AND o.customer_id = $customer_id
   AND o.payment_status = 'Done'
 ORDER BY o.order_date DESC, p.name
 ";
-
-$stmt_purchased = mysqli_prepare($conn, $sql_purchased);
-mysqli_stmt_bind_param($stmt_purchased, "i", $customer_id);
-mysqli_stmt_execute($stmt_purchased);
-$result_purchased = mysqli_stmt_get_result($stmt_purchased);
+$result_purchased_alt = mysqli_query($conn, $sql_purchased_alt);
+if (!$result_purchased_alt) {
+    die('Query failed: ' . mysqli_error($conn));
+}
+$result_purchased = $result_purchased_alt;
 
 // ------------------------
 // Bottom table: all submitted reviews
 $sql_reviews = "
 SELECT r.review_id, r.product_id, p.name AS product_name, r.rating, r.comment
 FROM Reviews r
-INNER JOIN Products p ON r.product_id = p.product_id
-WHERE r.customer_id = ?
+JOIN Products p ON r.product_id = p.product_id
+WHERE r.customer_id = $customer_id
 ORDER BY r.review_id DESC
 ";
-$stmt_reviews = mysqli_prepare($conn, $sql_reviews);
-mysqli_stmt_bind_param($stmt_reviews, "i", $customer_id);
-mysqli_stmt_execute($stmt_reviews);
-$result_reviews = mysqli_stmt_get_result($stmt_reviews);
+
+$result_reviews = mysqli_query($conn, $sql_reviews);
+if (!$result_reviews) {
+    die("Query failed: " . mysqli_error($conn));
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

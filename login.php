@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'config.php';
+include 'config.php'; // Make sure $conn is your mysqli connection
 
 $error = '';
 
@@ -9,21 +9,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'];
 
     if (!empty($email) && !empty($password)) {
-        try {
-            $stmt = $pdo->prepare("SELECT id, email, password FROM admins WHERE email = ?");
-            $stmt->execute([$email]);
-            $admin = $stmt->fetch();
+        $query = "SELECT id, email, password FROM admins WHERE email='$email'";
+        $result = mysqli_query($conn, $query);
+
+        if ($result) {
+            $admin = mysqli_fetch_assoc($result);
 
             if ($admin && $password == $admin['password']) {
                 $_SESSION['admin_id'] = $admin['id'];
                 $_SESSION['admin_email'] = $admin['email'];
-               
+
                 header("Location: dashboard.php");
                 exit();
             } else {
                 $error = "Invalid email or password!";
             }
-        } catch (PDOException $e) {
+        } else {
             $error = "Database error occurred!";
         }
     } else {
@@ -31,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
